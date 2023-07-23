@@ -1,54 +1,14 @@
 <!-- device_detail.html -->
 {% extends 'base.html' %}
 
-{% block title %}
-    {% if device %}
-        {{ device.device_name }} Details
-    {% else %}
-        Add New Device
-    {% endif %}
-{% endblock %}
-
 {% block content %}
-    <h1>
-        {% if device %}
-            {{ device.device_name }} Details
-        {% else %}
-            Add New Device
-        {% endif %}
-    </h1>
-
-    {% if not request.user.is_superuser %}
-        <p>You do not have permission to add devices.</p>
-    {% endif %}
-
-    {% if request.user.is_superuser and not device %}
-        <form method="post">
+    {% if user.is_superuser %}
+        <h2>Add Device</h2>
+        <form method="post" action="{% url 'add_device' %}">
             {% csrf_token %}
-            <label for="device_name">Device Name:</label>
-            <input type="text" name="device_name" id="device_name" required>
-
-            <label for="date">Date:</label>
-            <input type="date" name="date" id="date" required>
-
-            <label for="status">Status:</label>
-            <select name="status" id="status" required>
-                <option value="live">Live</option>
-                <option value="down">Down</option>
-            </select>
-
-            <!-- Add more fields for other device attributes as needed -->
-
+            {{ form.as_p }}
             <button type="submit">Add Device</button>
         </form>
     {% endif %}
-
-    {% if device %}
-        <!-- Display device details here -->
-        <p>Device Name: {{ device.device_name }}</p>
-        <p>Date: {{ device.date }}</p>
-        <p>Status: {{ device.status }}</p>
-        <p>Last Data Timestamp: {{ device.last_data_timestamp }}</p>
-        <!-- Add other device details as needed -->
-    {% endif %}
+    <p><a href="{% url 'dashboard' %}">Back to Dashboard</a></p>
 {% endblock %}

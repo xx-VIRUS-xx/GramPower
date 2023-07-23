@@ -1,29 +1,20 @@
 <!-- dashboard.html -->
 {% extends 'base.html' %}
 
-{% block title %}
-    Dashboard
-{% endblock %}
-
 {% block content %}
-    <h1>Welcome to IOT Dashboard</h1>
+    <h1>Welcome to the Dashboard</h1>
 
-    {% if user.is_authenticated %}
-        <p>Hello, {{ user.username }}!</p>
-    {% else %}
-        <p>Please <a href="{% url 'login_page' %}">Login</a> to view the dashboard.</p>
+    {% if user.is_superuser %}
+        <a href="{% url 'add_device' %}" class="add-device-btn">Add Device</a>
     {% endif %}
 
-    <h2>List of Devices</h2>
     <ul>
         {% for device in devices %}
             <li>
-                <a href="{% url 'device_detail' device.id %}">{{ device.device_name }}</a>
+                <a href="{% url 'device_detail' device_id=device.id %}">{{ device.device_name }}</a>
             </li>
         {% endfor %}
     </ul>
 
-    {% if user.is_superuser %}
-        <p><a href="{% url 'add_device' %}">Add New Device</a></p>
-    {% endif %}
+    <p><a href="{% url 'logout' %}">Logout</a></p>
 {% endblock %}

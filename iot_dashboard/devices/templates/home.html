@@ -1,11 +1,11 @@
 <!-- home.html -->
 {% extends 'base.html' %}
 
-{% block title %}
-    Welcome to IOT Dashboard
-{% endblock %}
-
 {% block content %}
     <h1>Welcome to IOT Dashboard</h1>
-    <p>Please <a href="{% url 'login_page' %}">Login</a> to view the dashboard.</p>
+    {% if user.is_authenticated %}
+        <p>Please <a href="{% url 'dashboard' %}">proceed to the Dashboard</a>.</p>
+    {% else %}
+        <p>Please <a href="{% url 'login_page' %}">login</a> or <a href="{% url 'register' %}">register</a> to access the Dashboard.</p>
+    {% endif %}
 {% endblock %}

@@ -1,14 +1,13 @@
 <!-- register.html -->
 {% extends 'base.html' %}
 
-{% block title %}Register{% endblock %}
-
 {% block content %}
-<h1>Register</h1>
-<form method="post">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <input type="submit" value="Register">
-</form>
+    <h1>Register</h1>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Register</button>
+    </form>
+    <p>Already registered? <a href="{% url 'login_page' %}">Login here</a>.</p>
 {% endblock %}
 
