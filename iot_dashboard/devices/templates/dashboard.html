@@ -11,7 +11,7 @@
     <ul>
         {% for device in devices %}
             <li>
-                <a href="{% url 'real_time_graph' device.id %}">{{ device.device_name }}</a>
+                <a href="{% url 'show_real_time_data' device.id %}">{{ device.device_name }}</a>
                 (ID: {{ device.device_id }})
                 <span class="{% if device.status == 'live' %}status-live{% else %}status-down{% endif %}">{{ device.status }}</span>
             </li>

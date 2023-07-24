@@ -6,6 +6,18 @@ from django.contrib import messages
 from django.db.models import Avg, Sum
 from .models import Device,RealTimeData
 from .forms import DeviceForm
+from datetime import datetime, timedelta
+from django.http import JsonResponse
+
+import random
+
+# Function to generate random data
+def generate_data():
+    current = random.uniform(0, 10)
+    voltage = random.uniform(100, 250)
+    power = current * voltage
+    timestamp = datetime.now()
+    return current, voltage, power, timestamp
 
 def home(request):
     if request.method == 'POST':
@@ -60,21 +72,62 @@ def device_detail(request, device_id=None):
     return render(request, 'device_detail.html', {'form': form, 'device': device})
 
 @login_required
-def real_time_graph(request, device_id=None):
-    device = get_object_or_404(Device, pk=device_id)
-    real_time_data = RealTimeData.objects.filter(device=device)
+def real_time_data(request):
+    device_ids = Device.objects.values_list('device_id', flat=True)
+    device_id = random.choice(device_ids)
 
-    avg_current = real_time_data.aggregate(avg_current=Avg('current'))['avg_current']
-    avg_voltage = real_time_data.aggregate(avg_voltage=Avg('voltage'))['avg_voltage']
-    total_power = real_time_data.aggregate(total_power=Sum('power'))['total_power']
-    return render(request, 'real_time.html', {
-        'device': device,
-        'real_time_data': real_time_data,
-        'avg_current': avg_current,
-        'avg_voltage': avg_voltage,
-        'total_power': total_power,
-    })
+    current, voltage, power, timestamp = generate_data()
 
+    RealTimeData.objects.create(device_id=device_id, current=current, voltage=voltage, power=power)
+
+    # Get the average current and voltage
+    avg_current = RealTimeData.objects.filter(device_id=device_id).aggregate(Avg('current'))['current__avg']
+    avg_voltage = RealTimeData.objects.filter(device_id=device_id).aggregate(Avg('voltage'))['voltage__avg']
+
+    # Get the total power
+    total_power = RealTimeData.objects.filter(device_id=device_id).aggregate(Sum('power'))['power__sum']
+
+    # Create the data dictionary
+    data = {
+        'timestamp': str(timestamp),
+        'avg_current': float(avg_current) if avg_current is not None else None,
+        'avg_voltage': float(avg_voltage) if avg_voltage is not None else None,
+        'total_power': float(total_power) if total_power is not None else None,
+    }
+
+    return JsonResponse(data)
+
+@login_required
+def show_real_time_data(request,device_id):
+    devices = get_object_or_404(Device, pk=device_id)
+    data_dict = {}
+
+    try:
+        timestamp = RealTimeData.objects.filter(device=devices).latest('timestamp')
+        total_power = RealTimeData.objects.filter(device=devices).aggregate(Sum('power'))['power__sum']
+        avg_current = RealTimeData.objects.filter(device=devices).aggregate(Avg('current'))['current__avg']
+        avg_voltage = RealTimeData.objects.filter(device=devices).aggregate(Avg('voltage'))['voltage__avg']
+
+        data_dict[devices] = {
+            'timestamp': timestamp,
+            'avg_current': avg_current,
+            'avg_voltage': avg_voltage,
+            'total_power': total_power
+        }
+
+    except RealTimeData.DoesNotExist:
+        # Handle the case when no RealTimeData is available for the device
+        data_dict[devices] = {
+            'timestamp': None,
+            'avg_current': None,
+            'avg_voltage': None,
+            'total_power': None
+        }
+
+    return render(request, 'real_time.html', {'data_dict': data_dict,'devices':devices})
+
+
+    
 def register(request):
     if request.method == 'POST':
         form = UserCreationForm(request.POST)

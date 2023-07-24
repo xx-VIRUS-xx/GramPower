@@ -1,35 +1,41 @@
 # consumers.py
+
 import json
-import asyncio
 from channels.generic.websocket import AsyncWebsocketConsumer
+from .models import RealTimeData
 
 class RealTimeDataConsumer(AsyncWebsocketConsumer):
     async def connect(self):
-        # Perform any necessary authentication here (if needed)
+        self.device_id = self.scope['url_route']['kwargs']['device_id']
+        self.group_name = f'device_{self.device_id}'
+
+        # Add the user to the WebSocket group to receive updates
+        await self.channel_layer.group_add(
+            self.group_name,
+            self.channel_name
+        )
+
         await self.accept()
 
-        await self.send_sample_data()
-
     async def disconnect(self, close_code):
-        pass
+        # Remove the user from the WebSocket group
+        await self.channel_layer.group_discard(
+            self.group_name,
+            self.channel_name
+        )
 
     async def receive(self, text_data):
-        data = json.loads(text_data)
-        # Process the received data and save it to the database
-        # You can call the handle_real_time_data function from views.py here
-    async def send_sample_data(self):
-        while True:
-            # Replace this part with your actual data retrieval logic
-            # For demonstration purposes, we're sending sample data
-            sample_data = {
-                'current': 10.0,  # Sample current value
-                'voltage': 220.0,  # Sample voltage value
-                'power': 2200.0,  # Sample power value
-                'timestamp': '2023-07-31 12:34:56'  # Sample timestamp
-            }
+        pass  # This consumer does not receive data from the client
 
-            # Send the sample data as a JSON string to the client
-            await self.send(text_data=json.dumps(sample_data))
+    async def send_real_time_data(self, event):
+        # Send real-time data to the client
+        latest_data = RealTimeData.objects.latest('timestamp')
+        real_time_data = {
+            'current': latest_data.current,
+            'voltage': latest_data.voltage,
+            'power': latest_data.power,
+            'timestamp': latest_data.timestamp.strftime('%Y-%m-%d %H:%M:%S')
+        }
 
-            # Wait for 5 seconds before sending the next sample data
-            await asyncio.sleep(5)
+        # Send real-time data to the WebSocket
+        await self.send(text_data=json.dumps(real_time_data))
