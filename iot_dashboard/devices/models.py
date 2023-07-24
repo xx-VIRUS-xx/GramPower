@@ -12,3 +12,13 @@ class Device(models.Model):
 
     def __str__(self):
         return self.device_name
+
+class RealTimeData(models.Model):
+    device = models.ForeignKey(Device, on_delete=models.CASCADE)
+    current = models.FloatField(null=True)
+    voltage = models.FloatField(null=True)
+    power = models.FloatField(null=True)
+    timestamp = models.DateTimeField(auto_now_add=True,null=True)
+
+    def __str__(self):
+        return f"{self.device.device_name} - {self.timestamp}"

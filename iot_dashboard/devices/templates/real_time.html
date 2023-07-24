@@ -1,0 +1,108 @@
+<!-- real_time_graph.html -->
+{% extends 'base.html' %}
+
+{% block content %}
+<h2>Device Information</h2>
+<p>Device ID: {{ device.device_id}}</p>
+<p>Device Name: {{ device.device_name}}</p>
+<p>Status:<span class="{% if device.status == 'live' %}status-live{% else %}status-down{% endif %}">{{ device.status }}</span></p>
+<p>Avg Current: {{ avg_current }} <id="current-value"></id></p>
+<p>Avg Voltage: {{ avg_voltage }}</p>
+<p>Total Power: {{ total_power }}</p>
+<p>Timestamp: {{real_time_data.timestamp}}</p>
+
+<script>
+    const ws = new WebSocket('ws://your-domain/ws/real_time_data/');
+
+    ws.onopen = () => {
+        console.log('WebSocket connection established');
+    };
+
+    ws.onmessage = (event) => {
+        // Handle incoming messages (sample data) from the server
+        const data = JSON.parse(event.data);
+        updateData(data);
+    };
+
+    ws.onclose = (event) => {
+        console.log('WebSocket connection closed');
+    };
+
+    function updateData(data) {
+        // Update the table with the received data
+        document.getElementById('current-value').innerText = data.current;
+        document.getElementById('voltage-value').innerText = data.voltage;
+        document.getElementById('power-value').innerText = data.power;
+        document.getElementById('timestamp-value').innerText = data.timestamp;
+    }
+</script>
+
+    
+    <div style="max-width: 800px;">
+        <canvas id="powerChart" width="800" height="400"></canvas>
+    </div>
+    <script>
+        // Function to fetch real-time data from the server
+        function fetchData(deviceId) {
+            // Implement the logic to fetch live data from the server here
+            // Example: Use AJAX to get data from the server
+
+            // Dummy data for demonstration purposes
+            const powerData = [10, 20, 30, 40, 50];
+            const timeLabels = ['12:00', '12:05', '12:10', '12:15', '12:20'];
+
+            return { powerData, timeLabels };
+        }
+
+        // Function to update the chart with real-time data
+        function updateChart(deviceId) {
+            const { powerData, timeLabels } = fetchData(deviceId);
+
+            // Get the canvas element and create a new chart
+            const ctx = document.getElementById('powerChart').getContext('2d');
+            const powerChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: timeLabels,
+                    datasets: [{
+                        label: 'Power',
+                        data: powerData,
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        borderWidth: 1,
+                        fill: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            display: true,
+                            title: {
+                                display: true,
+                                text: 'Time'
+                            }
+                        },
+                        y: {
+                            display: true,
+                            title: {
+                                display: true,
+                                text: 'Power'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Call the updateChart function with the device_id when the page loads
+        const deviceId = {{ device.id }};
+        updateChart(deviceId);
+
+        // Set an interval to update the chart every few seconds (e.g., 5 seconds)
+        setInterval(() => {
+            updateChart(deviceId);
+        }, 5000);
+    </script>
+    <p><a href="{% url 'dashboard' %}">Back to the Dashboard</a>.</p>
+{% endblock %}

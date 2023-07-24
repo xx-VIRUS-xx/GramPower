@@ -3,7 +3,8 @@ from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from .models import Device
+from django.db.models import Avg, Sum
+from .models import Device,RealTimeData
 from .forms import DeviceForm
 
 def home(request):
@@ -58,6 +59,21 @@ def device_detail(request, device_id=None):
 
     return render(request, 'device_detail.html', {'form': form, 'device': device})
 
+@login_required
+def real_time_graph(request, device_id=None):
+    device = get_object_or_404(Device, pk=device_id)
+    real_time_data = RealTimeData.objects.filter(device=device)
+
+    avg_current = real_time_data.aggregate(avg_current=Avg('current'))['avg_current']
+    avg_voltage = real_time_data.aggregate(avg_voltage=Avg('voltage'))['avg_voltage']
+    total_power = real_time_data.aggregate(total_power=Sum('power'))['total_power']
+    return render(request, 'real_time.html', {
+        'device': device,
+        'real_time_data': real_time_data,
+        'avg_current': avg_current,
+        'avg_voltage': avg_voltage,
+        'total_power': total_power,
+    })
 
 def register(request):
     if request.method == 'POST':
