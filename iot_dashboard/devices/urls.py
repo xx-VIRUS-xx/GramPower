@@ -11,4 +11,5 @@ urlpatterns = [
     path('devices/<int:device_id>/', views.device_detail, name='device_detail'),
     path('show_real_time_data/<int:device_id>/', views.show_real_time_data, name='show_real_time_data'),
     path('real_time_data/', views.real_time_data, name='real_time_data'),
+    path('graph/', views.graph, name='graph'),
 ]

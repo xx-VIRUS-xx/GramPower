@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div id="graph-container"></div>
+<script>
+function updateGraph() {
+    $.getJSON('/real_time_data/', function(data) {
+        // Extract timestamps and numbers from the JSON data
+        var times = data.time_labels;
+        var power = data.power_data;
+
+        // Create the graph
+        var graphData = [{
+            x: times,
+            y: power,
+            type: 'scatter',
+            mode: 'lines+markers',
+            name: 'Device Info',
+        }];
+
+        var layout = {
+            title: 'Power Over Time',
+            xaxis: {
+                title: 'Time',
+            },
+            yaxis: {
+                title: 'Power',
+            },
+        };
+
+        Plotly.newPlot('graph-container', graphData, layout);
+    });
+}
+
+// Update the graph every 20 seconds
+setInterval(updateGraph, 5000);
+
+
+</script>
+
+<p><a href="{% url 'dashboard' %}">Back to the Dashboard</a>.</p>
+{% endblock %}

@@ -19,6 +19,7 @@ class RealTimeData(models.Model):
     voltage = models.FloatField(null=True)
     power = models.FloatField(null=True)
     timestamp = models.DateTimeField(auto_now_add=True)
+    
 
     def __str__(self):
         return self.device.device_name

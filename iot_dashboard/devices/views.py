@@ -7,17 +7,12 @@ from django.db.models import Avg, Sum
 from .models import Device,RealTimeData
 from .forms import DeviceForm
 from datetime import datetime, timedelta
+from django.utils.timezone import now
 from django.http import JsonResponse
-
+import pytz
 import random
 
 # Function to generate random data
-def generate_data():
-    current = random.uniform(0, 10)
-    voltage = random.uniform(100, 250)
-    power = current * voltage
-    timestamp = datetime.now()
-    return current, voltage, power, timestamp
 
 def home(request):
     if request.method == 'POST':
@@ -73,10 +68,17 @@ def device_detail(request, device_id=None):
 
 @login_required
 def real_time_data(request):
-    device_ids = Device.objects.values_list('device_id', flat=True)
-    device_id = random.choice(device_ids)
+    device_id = request.GET.get('device_id')
 
-    current, voltage, power, timestamp = generate_data()
+    # If device_id is not provided, select a random device
+    if not device_id:
+        device_ids = Device.objects.values_list('device_id', flat=True)
+        device_id = random.choice(device_ids)
+
+    current = random.uniform(0, 10)
+    voltage = random.uniform(100, 250)
+    power = current * voltage
+    timestamp = datetime.now()
 
     RealTimeData.objects.create(device_id=device_id, current=current, voltage=voltage, power=power)
 
@@ -87,8 +89,19 @@ def real_time_data(request):
     # Get the total power
     total_power = RealTimeData.objects.filter(device_id=device_id).aggregate(Sum('power'))['power__sum']
 
+    ist = pytz.timezone('Asia/Kolkata')
+
+    time_threshold = now() - timedelta(minutes=1)
+    data = RealTimeData.objects.filter(device_id=device_id, timestamp__gte=time_threshold).order_by('timestamp')
+
+    # Prepare data for the graph
+    time_labels = [entry.timestamp.astimezone(ist).strftime('%H:%M:%S') for entry in data]
+    power_data = [entry.power for entry in data]
+
     # Create the data dictionary
     data = {
+        'time_labels':time_labels,
+        'power_data':power_data,
         'timestamp': str(timestamp),
         'avg_current': float(avg_current) if avg_current is not None else None,
         'avg_voltage': float(avg_voltage) if avg_voltage is not None else None,
@@ -107,7 +120,6 @@ def show_real_time_data(request,device_id):
         total_power = RealTimeData.objects.filter(device=devices).aggregate(Sum('power'))['power__sum']
         avg_current = RealTimeData.objects.filter(device=devices).aggregate(Avg('current'))['current__avg']
         avg_voltage = RealTimeData.objects.filter(device=devices).aggregate(Avg('voltage'))['voltage__avg']
-
         data_dict[devices] = {
             'timestamp': timestamp,
             'avg_current': avg_current,
@@ -126,8 +138,26 @@ def show_real_time_data(request,device_id):
 
     return render(request, 'real_time.html', {'data_dict': data_dict,'devices':devices})
 
+@login_required 
+def graph(request):
+    device_id = request.GET.get('device_id')
+    data_dict={}
 
+    time_threshold = now() - timedelta(minutes=1)
+    data = RealTimeData.objects.filter(device=device_id, timestamp__gte=time_threshold).order_by('timestamp')
+
+    # Prepare data for the graph
+    time_labels = [entry.timestamp.strftime('%H:%M:%S') for entry in data]
+    power_data = [entry.power for entry in data]
+
+    data_dict[device_id]={
+        "time": time_labels,
+        "power" : power_data
+    }
+
+    return render(request, 'graph.html', { 'data_dict':data_dict, 'devices': device_id,})
     
+
 def register(request):
     if request.method == 'POST':
         form = UserCreationForm(request.POST)

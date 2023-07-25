@@ -10,6 +10,7 @@
 <p>Avg Voltage: <span id="avg_voltage"></span></p>
 <p>Total Power: <span id="total_power"></span></p>
 <p>Timestamp: <span id="timestamp"></span></p>
+
 <script>
     function updateRandomNumber() {
         $.getJSON('/real_time_data/', function(data) {
@@ -17,11 +18,16 @@
             $('#avg_voltage').text(data.avg_voltage);
             $('#total_power').text(data.total_power);
             $('#timestamp').text(data.timestamp);
+            
         });
+        
     }
-
-    // Update the random number and sum every 1 second
-    setInterval(updateRandomNumber, 1000);
+    setInterval(updateRandomNumber, 5000);
+    
 </script>
+
+
+<p><a href="{% url 'graph'%}">Show Graph</a>.</p>
+
 <p><a href="{% url 'dashboard' %}">Back to the Dashboard</a>.</p>
 {% endblock %}
