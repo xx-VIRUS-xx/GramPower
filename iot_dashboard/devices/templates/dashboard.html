@@ -1,22 +1,50 @@
-<!-- dashboard.html -->
 {% extends 'base.html' %}
 
 {% block content %}
     <h1>Welcome to the Dashboard</h1>
 
-    {% if user.is_superuser %}
-        <a href="{% url 'add_device' %}" class="add-device-btn">Add Device</a>
-    {% endif %}
+    <script>
+        function updateDashboard() {
+            $.ajax({
+                url: window.location.href,
+                type: 'GET',
+                dataType: 'json',
+                success: function (data) {
+                    $.each(data, function (index, device) {
+                        var statusColor = device.status === 'Live' ? 'status-live' : 'status-down';
+                        var rowId = 'device-row-' + device.id;
+                        var statusCellId = 'status-cell-' + device.id;
 
-    <ul>
-        {% for device in devices %}
-            <li>
-                <a href="{% url 'show_real_time_data' device.id %}">{{ device.device_name }}</a>
-                (ID: {{ device.device_id }})
-                <span class="{% if device.status == 'live' %}status-live{% else %}status-down{% endif %}">{{ device.status }}</span>
-            </li>
-        {% endfor %}
-    </ul>
+                        // Update the status cell with the new status
+                        $('#' + statusCellId).html('<span class="' + statusColor + '">' + device.status + '</span>');
+                    });
+                }
+            });
+        }
+
+        $(document).ready(function () {
+            updateDashboard();
+            setInterval(updateDashboard, 5000); // Update the dashboard every 5 seconds
+        });
+    </script>
+    <table id="device-table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>ID</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for device in devices %}
+            <tr id="device-row-{{ device.id }}">
+                <td><a href="{% url 'show_real_time_data' device_id=device.device_id %}">{{ device.device_name }}</a></td>
+                <td>{{ device.device_id }}</td>
+                <td id="status-cell-{{ device.id }}"><span class="status-status">{{ device.status }}</span></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
 
     <p><a href="{% url 'logout' %}">Logout</a></p>
 

@@ -2,17 +2,16 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
-from django.contrib import messages
+from django.views import View
 from django.db.models import Avg, Sum
 from .models import Device,RealTimeData
-from .forms import DeviceForm
 from datetime import datetime, timedelta
 from django.utils.timezone import now
 from django.http import JsonResponse
+
 import pytz
 import random
-
-# Function to generate random data
+        
 
 def home(request):
     if request.method == 'POST':
@@ -39,32 +38,34 @@ def login_page(request):
 @login_required
 def dashboard(request):
     devices = Device.objects.all()
-    return render(request, 'dashboard.html', {'devices': devices})
 
-@login_required
-def device_detail(request, device_id=None):
-    # Retrieve the device if device_id is provided
-    if device_id:
-        device = get_object_or_404(Device, pk=device_id)
-    else:
-        device = None
+    device_ids = Device.objects.values_list('device_id', flat=True)
 
-    # Check if the user is a superuser and if the request method is POST
-    if request.user.is_superuser and request.method == 'POST':
-        # If the form is submitted with data, process the form and add the device
-        form = DeviceForm(request.POST)
-        if form.is_valid():
-            form.save()
-            messages.success(request, 'Device added successfully!')
-            return redirect('device_detail', device_id=form.instance.id)
-    else:
-        # Otherwise, show the device details (if device_id is provided) or the add device form
-        if device_id:
-            form = DeviceForm(instance=device)  # Prepopulate the form with device details
+    for _ in range(70): 
+        device1 = random.choice(device_ids)
+        device = Device.objects.get(device_id=device1)
+        current = random.uniform(0.0, 10.0)
+        voltage = random.uniform(110.0, 240.0)
+        power = current * voltage
+        RealTimeData.objects.create(device=device, current=current, voltage=voltage, power=power)
+        
+    for device in devices:
+        latest_data = RealTimeData.objects.filter(device=device).order_by('-timestamp').first()
+        if latest_data:
+            time_diff = now() - latest_data.timestamp
+            if time_diff.total_seconds() <= 100:
+                device.status = "Live"
+            else:
+                device.status = "Down"
         else:
-            form = DeviceForm()
+            device.status = "Down"
+        device.save()
 
-    return render(request, 'device_detail.html', {'form': form, 'device': device})
+    context = {'devices': devices}
+    if request.META.get('HTTP_X_REQUESTED_WITH') == 'XMLHttpRequest':
+        data = [{ 'status': device.status,'name':device.device_name,'id':device.device_id} for device in devices]
+        return JsonResponse(data, safe=False)
+    return render(request, 'dashboard.html', context)
 
 @login_required
 def real_time_data(request):
@@ -111,32 +112,38 @@ def real_time_data(request):
     return JsonResponse(data)
 
 @login_required
-def show_real_time_data(request,device_id):
-    devices = get_object_or_404(Device, pk=device_id)
+def show_real_time_data(request, device_id):
+    devices = get_object_or_404(Device, device_id=device_id)
     data_dict = {}
 
-    try:
-        timestamp = RealTimeData.objects.filter(device=devices).latest('timestamp')
+    if devices.status == 'Live':
+        latest_data = RealTimeData.objects.filter(device=devices).latest('timestamp')
         total_power = RealTimeData.objects.filter(device=devices).aggregate(Sum('power'))['power__sum']
         avg_current = RealTimeData.objects.filter(device=devices).aggregate(Avg('current'))['current__avg']
         avg_voltage = RealTimeData.objects.filter(device=devices).aggregate(Avg('voltage'))['voltage__avg']
         data_dict[devices] = {
-            'timestamp': timestamp,
+            'timestamp': latest_data.timestamp,
             'avg_current': avg_current,
             'avg_voltage': avg_voltage,
-            'total_power': total_power
+            'total_power': total_power,
+            'status': 'Live',  # Add the 'status' key with value 'Live'
         }
 
-    except RealTimeData.DoesNotExist:
-        # Handle the case when no RealTimeData is available for the device
+    else:
+        # Device is down, clear previous real-time data
+        RealTimeData.objects.filter(device=devices).delete()
+
+        # Set real-time data as None
         data_dict[devices] = {
             'timestamp': None,
             'avg_current': None,
             'avg_voltage': None,
-            'total_power': None
+            'total_power': None,
+            'status': 'Down',  # Add the 'status' key with value 'Down'
         }
 
-    return render(request, 'real_time.html', {'data_dict': data_dict,'devices':devices})
+    return render(request, 'real_time.html', {'data_dict': data_dict, 'devices': devices})
+
 
 @login_required 
 def graph(request):
@@ -156,7 +163,7 @@ def graph(request):
     }
 
     return render(request, 'graph.html', { 'data_dict':data_dict, 'devices': device_id,})
-    
+   
 
 def register(request):
     if request.method == 'POST':
