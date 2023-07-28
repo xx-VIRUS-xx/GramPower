@@ -80,8 +80,8 @@ DATABASES = {
         'default': {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'postgres',
-        'USER': 'postgres',
-        'PASSWORD': '12345678',
+        'USER': 'username here',
+        'PASSWORD': 'your password',
         'HOST': 'iot.cocvxvgvmig3.ap-south-1.rds.amazonaws.com',
         'PORT': '5432'
     }
