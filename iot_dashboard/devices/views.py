@@ -41,7 +41,7 @@ def dashboard(request):
 
     device_ids = Device.objects.values_list('device_id', flat=True)
 
-    for _ in range(70): 
+    for _ in range(25): 
         device1 = random.choice(device_ids)
         device = Device.objects.get(device_id=device1)
         current = random.uniform(0.0, 10.0)
@@ -146,8 +146,7 @@ def show_real_time_data(request, device_id):
 
 
 @login_required 
-def graph(request):
-    device_id = request.GET.get('device_id')
+def graph(request,device_id):
     data_dict={}
 
     time_threshold = now() - timedelta(minutes=1)

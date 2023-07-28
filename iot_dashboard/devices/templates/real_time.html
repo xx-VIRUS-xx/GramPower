@@ -23,7 +23,7 @@
         }
         setInterval(updateRandomNumber, 5000);
     </script>
-    <p><a href="{% url 'graph' %}">Show Graph</a>.</p>
+    <p><a href="{% url 'graph' device_id=devices.device_id%}">Show Graph</a>.</p>
 {% else %}
     <h2>Sorry, this device is currently down. No real-time data available.</h2>
 {% endif %}
